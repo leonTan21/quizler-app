@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quizler</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    #feedback { font-weight: bold; margin-top: 20px; }
+    #restartBtn { display: none; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2 id="question">Loading question...</h2>
+
+  <button id="trueBtn" onclick="submitAnswer('True')">True</button>
+  <button id="falseBtn" onclick="submitAnswer('False')">False</button>
+
+  <p id="feedback"></p>
+  <p id="score">Score: 0</p>
+
+  <button id="restartBtn" onclick="restartQuiz()">Restart Quiz</button>
+
+  <script>
+    let currentQuestion = null;
+
+    async function loadQuestion() {
+      const res = await fetch("http://127.0.0.1:8000/api/question");
+      const data = await res.json();
+
+      if (data.message) {
+        // Quiz finished
+        document.getElementById("question").innerText = data.message;
+        document.getElementById("feedback").innerText = `Final Score: ${document.getElementById("score").innerText.split(": ")[1]}`;
+
+        // Hide buttons
+        document.getElementById("trueBtn").disabled = true;
+        document.getElementById("falseBtn").disabled = true;
+
+        // Show restart button
+        document.getElementById("restartBtn").style.display = "inline-block";
+
+        return;
+      }
+
+      currentQuestion = data;
+
+      // Show the question
+      document.getElementById("question").innerText =
+        `Q${data.number}: ${data.question}`;
+
+      document.getElementById("feedback").innerText = "";
+
+      // Enable buttons
+      document.getElementById("trueBtn").disabled = false;
+      document.getElementById("falseBtn").disabled = false;
+    }
+
+    async function submitAnswer(answer) {
+      // Disable buttons to prevent double-click
+      document.getElementById("trueBtn").disabled = true;
+      document.getElementById("falseBtn").disabled = true;
+
+      const res = await fetch(
+        `http://127.0.0.1:8000/api/answer?answer=${encodeURIComponent(answer)}`,
+        { method: "POST" }
+      );
+
+      const data = await res.json();
+
+      document.getElementById("feedback").innerText =
+        data.correct ? "✅ Correct!" : "❌ Wrong!";
+
+      document.getElementById("score").innerText = `Score: ${data.score}`;
+
+      // Load next question automatically after 1 second
+      setTimeout(loadQuestion, 1000);
+    }
+
+    function restartQuiz() {
+      // Simple full reset
+      window.location.reload();
+    }
+
+    // Load first question on page load
+    window.onload = loadQuestion;
+  </script>
+</body>
+</html>
