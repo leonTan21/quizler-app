@@ -19,7 +19,7 @@ class QuizBrain:
         return {
             "number": self.question_number,
             "question": html.unescape(self.current_question.text),
-            "answer": self.current_question.answer  # optional, not sent to frontend
+            # "answer": self.current_question.answer  # optional, not sent to frontend
         }
 
     def check_answer(self, user_answer):
