@@ -7,28 +7,31 @@ async function loadQuestion() {
     const data = await res.json();
 
     if (data.message) {
-      // Quiz finished
       document.getElementById("question").innerText = "🎉 Quiz finished!";
-      document.getElementById("feedback").innerText = "";
       document.getElementById("trueBtn").disabled = true;
       document.getElementById("falseBtn").disabled = true;
       document.getElementById("restartBtn").style.display = "inline-block";
       return;
     }
 
-    // Update current question
     currentQuestion = data;
-    document.getElementById("question").innerText = `Q${data.number}: ${data.question}`;
+
+    document.getElementById("question").innerText =
+      `Q${data.number}: ${data.question}`;
+
     document.getElementById("feedback").innerText = "";
 
-    // Enable buttons
+    /* UPDATE PROGRESS BAR */
+    const totalQuestions = 10;
+    const progressPercent = (data.number / totalQuestions) * 100;
+    document.getElementById("progressBar").style.width =
+      progressPercent + "%";
+
     document.getElementById("trueBtn").disabled = false;
     document.getElementById("falseBtn").disabled = false;
-    document.getElementById("restartBtn").style.display = "none";
 
   } catch (err) {
     console.error("Failed to load question:", err);
-    document.getElementById("question").innerText = "Error loading question!";
   }
 }
 
@@ -80,6 +83,7 @@ async function restartQuiz() {
     document.getElementById("trueBtn").disabled = false;
     document.getElementById("falseBtn").disabled = false;
     document.getElementById("restartBtn").style.display = "none";
+    document.getElementById("progressBar").style.width = "0%";
 
   } catch (err) {
     console.error("Failed to restart quiz:", err);
@@ -93,4 +97,4 @@ document.getElementById("falseBtn").addEventListener("click", () => submitAnswer
 document.getElementById("restartBtn").addEventListener("click", restartQuiz);
 
 // Load the first question on page load
-loadQuestion();
+loadQuestion()
