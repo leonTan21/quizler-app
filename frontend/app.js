@@ -1,4 +1,49 @@
 let currentQuestion = null;
+let totalQuestions = 10; // default, will be updated
+let currentNumQuestions = 10;
+let currentQuestionType = "boolean";
+
+// Start the quiz with user parameters
+async function startQuiz() {
+  const numQuestions = document.getElementById("numQuestions").value;
+  const questionType = document.getElementById("questionType").value;
+
+  currentNumQuestions = numQuestions;
+  currentQuestionType = questionType;
+
+  try {
+    const res = await fetch(`http://127.0.0.1:8000/api/start?amount=${numQuestions}&q_type=${questionType}`, { method: "POST" });
+    const data = await res.json();
+
+    // Update total questions for progress
+    totalQuestions = parseInt(numQuestions);
+
+    // Set current question
+    currentQuestion = {
+      number: data.number,
+      question: data.question
+    };
+
+    // Hide start screen, show quiz screen
+    document.getElementById("startScreen").style.display = "none";
+    document.getElementById("quizScreen").style.display = "block";
+
+    // Update UI
+    document.getElementById("question").innerText = `Q${data.number}: ${data.question}`;
+    document.getElementById("feedback").innerText = "";
+    document.getElementById("score").innerText = "Score: 0";
+    document.getElementById("progressBar").style.width = "0%";
+
+    // Enable buttons
+    document.getElementById("trueBtn").disabled = false;
+    document.getElementById("falseBtn").disabled = false;
+    document.getElementById("restartBtn").style.display = "none";
+
+  } catch (err) {
+    console.error("Failed to start quiz:", err);
+    alert("Failed to start quiz. Please try again.");
+  }
+}
 
 // Load a question from the backend
 async function loadQuestion() {
@@ -7,28 +52,30 @@ async function loadQuestion() {
     const data = await res.json();
 
     if (data.message) {
-      // Quiz finished
       document.getElementById("question").innerText = "🎉 Quiz finished!";
-      document.getElementById("feedback").innerText = "";
       document.getElementById("trueBtn").disabled = true;
       document.getElementById("falseBtn").disabled = true;
       document.getElementById("restartBtn").style.display = "inline-block";
       return;
     }
 
-    // Update current question
     currentQuestion = data;
-    document.getElementById("question").innerText = `Q${data.number}: ${data.question}`;
+
+    document.getElementById("question").innerText =
+      `Q${data.number}: ${data.question}`;
+
     document.getElementById("feedback").innerText = "";
 
-    // Enable buttons
+    /* UPDATE PROGRESS BAR */
+    const progressPercent = (data.number / totalQuestions) * 100;
+    document.getElementById("progressBar").style.width =
+      progressPercent + "%";
+
     document.getElementById("trueBtn").disabled = false;
     document.getElementById("falseBtn").disabled = false;
-    document.getElementById("restartBtn").style.display = "none";
 
   } catch (err) {
     console.error("Failed to load question:", err);
-    document.getElementById("question").innerText = "Error loading question!";
   }
 }
 
@@ -62,35 +109,19 @@ async function submitAnswer(answer) {
 
 // Restart the quiz
 async function restartQuiz() {
-  try {
-    const res = await fetch("http://127.0.0.1:8000/api/restart", { method: "POST" });
-    const data = await res.json();
+  // Hide quiz screen, show start screen
+  document.getElementById("quizScreen").style.display = "none";
+  document.getElementById("startScreen").style.display = "block";
 
-    // Update frontend with the first question
-    currentQuestion = {
-      number: data.number,
-      question: data.question
-    };
-
-    document.getElementById("question").innerText = `Q${data.number}: ${data.question}`;
-    document.getElementById("feedback").innerText = "";
-    document.getElementById("score").innerText = "Score: 0";
-
-    // Enable buttons and hide restart button
-    document.getElementById("trueBtn").disabled = false;
-    document.getElementById("falseBtn").disabled = false;
-    document.getElementById("restartBtn").style.display = "none";
-
-  } catch (err) {
-    console.error("Failed to restart quiz:", err);
-    document.getElementById("question").innerText = "Error restarting quiz!";
-  }
+  // Set inputs to previous values
+  document.getElementById("numQuestions").value = currentNumQuestions;
+  document.getElementById("questionType").value = currentQuestionType;
 }
 
 // Hook buttons to functions
 document.getElementById("trueBtn").addEventListener("click", () => submitAnswer("True"));
 document.getElementById("falseBtn").addEventListener("click", () => submitAnswer("False"));
 document.getElementById("restartBtn").addEventListener("click", restartQuiz);
+document.getElementById("startBtn").addEventListener("click", startQuiz);
 
-// Load the first question on page load
-loadQuestion();
+// No initial loadQuestion, wait for start

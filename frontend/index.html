@@ -4,61 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quizler App</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 50px auto;
-      text-align: center;
-    }
-    #question {
-      font-size: 1.5rem;
-      margin-bottom: 20px;
-    }
-    #feedback {
-      font-size: 1.2rem;
-      margin: 10px 0;
-    }
-    #score {
-      font-size: 1.2rem;
-      margin: 10px 0;
-    }
-    button {
-      font-size: 1rem;
-      padding: 10px 20px;
-      margin: 5px;
-      cursor: pointer;
-    }
-    #restartBtn {
-      display: none;
-      background-color: #f39c12;
-      color: white;
-      border: none;
-    }
-    #trueBtn {
-      background-color: #27ae60;
-      color: white;
-      border: none;
-    }
-    #falseBtn {
-      background-color: #c0392b;
-      color: white;
-      border: none;
-    }
-  </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="container">
 
   <h1>Quizler App</h1>
+
+  <div id="startScreen">
+    <label for="numQuestions">Number of Questions:</label>
+    <input type="number" id="numQuestions" min="1" max="50" value="10">
+    <br>
+    <label for="questionType">Question Type:</label>
+    <select id="questionType">
+      <option value="boolean">True/False</option>
+    </select>
+    <br>
+    <button id="startBtn">Start Quiz</button>
+  </div>
+
+  <div id="quizScreen" style="display: none;">
+  <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+  </div>
+
   <div id="question">Loading quiz...</div>
   <div id="feedback"></div>
   <div id="score">Score: 0</div>
 
-  <button id="trueBtn">True</button>
-  <button id="falseBtn">False</button>
-  <button id="restartBtn">Restart Quiz</button>
+  <div class="buttons">
+      <button id="trueBtn">True</button>
+      <button id="falseBtn">False</button>
+      <button id="restartBtn">Restart Quiz</button>
+  </div>
+  </div>
 
-  <!-- Link to your script.js -->
+    </div>
   <script src="app.js"></script>
 </body>
 </html>
