@@ -14,17 +14,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def fetch_questions(amount=10):
+def fetch_questions(amount=10, q_type="boolean"):
     """Fetch questions from Open Trivia API"""
-    parameters = {"amount": amount, "type": "boolean"}
+    parameters = {"amount": amount, "type": q_type}
     response = requests.get("https://opentdb.com/api.php", params=parameters)
     response.raise_for_status()
     data = response.json()
     return data["results"]
 
-def create_quiz():
+def create_quiz(amount=10, q_type="boolean"):
     """Create a new QuizBrain instance with fresh questions"""
-    question_data = fetch_questions()
+    question_data = fetch_questions(amount, q_type)
     question_bank = [
         Question(q["question"], q["correct_answer"])
         for q in question_data
@@ -37,6 +37,18 @@ quiz = create_quiz()
 @app.get("/")
 def root():
     return {"status": "Backend running"}
+
+@app.post("/api/start")
+def start_quiz(amount: int = 10, q_type: str = "boolean"):
+    """Start a new quiz with specified amount and type"""
+    global quiz
+    quiz = create_quiz(amount, q_type)
+    first_q = quiz.next_question()
+    return {
+        "message": "Quiz started",
+        "number": first_q["number"],
+        "question": first_q["question"]
+    }
 
 @app.get("/api/question")
 def get_question():
