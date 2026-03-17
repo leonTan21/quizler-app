@@ -1,7 +1,7 @@
 /* Page background */
 body {
   font-family: "Segoe UI", Arial, sans-serif;
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   margin: 0;
   padding: 0;
   height: 100vh;
@@ -13,9 +13,6 @@ body {
 /* Quiz card container */
 .container {
   background-color: white;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 250px; /* adjust logo size */
 
   padding: 35px;
   border-radius: 15px;
@@ -25,17 +22,6 @@ body {
   box-shadow: 0 15px 40px rgba(0,0,0,0.2);
 
   position: relative;
-}
-
-/* watermark layer */
-.container::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("images/app_logo.png") no-repeat center;
-  background-size: 250px;
-  opacity: 0.10; /* controls watermark visibility */
-  pointer-events: none;
 }
 
 /* Title */
@@ -127,6 +113,12 @@ button:active {
   background: #f39c12;
   color: white;
   display: none;
+}
+
+/* Start quiz button */
+#startBtn {
+  background: #3498db;
+  color: white;
 }
 
 /* Disabled buttons */
