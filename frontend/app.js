@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "";
 
 // ── Helpers ───────────────────────────────────────────────────
 function getToday() {
@@ -21,10 +21,14 @@ function escapeHtml(s) {
 const STREAK_KEY = "quizler_streak";
 
 function getStreak() {
-  return JSON.parse(
-    localStorage.getItem(STREAK_KEY) ||
-    '{"count":0,"bestStreak":0,"lastCompleted":null,"lastScore":null,"history":[]}'
-  );
+  try {
+    return JSON.parse(
+      localStorage.getItem(STREAK_KEY) ||
+      '{"count":0,"bestStreak":0,"lastCompleted":null,"lastScore":null,"history":[]}'
+    );
+  } catch {
+    return { count: 0, bestStreak: 0, lastCompleted: null, lastScore: null, history: [] };
+  }
 }
 
 function hasCompletedToday() {
@@ -52,10 +56,14 @@ function recordDailyCompletion(score, total) {
 const STATS_KEY = "quizler_stats";
 
 function getStats() {
-  return JSON.parse(
-    localStorage.getItem(STATS_KEY) ||
-    '{"totalAnswered":0,"totalCorrect":0,"byCategory":{},"games":[]}'
-  );
+  try {
+    return JSON.parse(
+      localStorage.getItem(STATS_KEY) ||
+      '{"totalAnswered":0,"totalCorrect":0,"byCategory":{},"games":[]}'
+    );
+  } catch {
+    return { totalAnswered: 0, totalCorrect: 0, byCategory: {}, games: [] };
+  }
 }
 
 function recordGame(mode, categoryName, score, total) {
@@ -66,7 +74,7 @@ function recordGame(mode, categoryName, score, total) {
   stats.byCategory[categoryName].answered += total;
   stats.byCategory[categoryName].correct += score;
   stats.games.unshift({ mode, category: categoryName, score, total, date: getToday() });
-  stats.games = stats.games.slice(0, 20);
+  stats.games = stats.games.slice(0, 30);
   localStorage.setItem(STATS_KEY, JSON.stringify(stats));
 }
 
@@ -74,7 +82,11 @@ function recordGame(mode, categoryName, score, total) {
 const BOOKMARKS_KEY = "quizler_bookmarks";
 
 function getBookmarks() {
-  return JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || "[]");
+  try {
+    return JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
 
 function bookmarkCurrentQuestion() {
@@ -138,25 +150,70 @@ function router() {
     const id = parseInt(hash.split("/")[1]);
     const cat = CATEGORIES.find(c => c.id === id);
     cat ? renderCategoryConfig(cat) : renderHome();
-    return;
+  } else {
+    const pages = {
+      "#home":         renderHome,
+      "#daily":        renderDaily,
+      "#categories":   renderCategories,
+      "#quick":        renderQuickConfig,
+      "#stats":        renderStats,
+      "#jeopardy":     renderJeopardyConfig,
+      "#sudden-death": renderSuddenDeathConfig,
+      "#timed":        renderTimedConfig,
+      "#numbers":      renderNumbersConfig,
+      "#saved":        renderSaved,
+    };
+    (pages[hash] || renderHome)();
   }
-  const pages = {
-    "#home":         renderHome,
-    "#daily":        renderDaily,
-    "#categories":   renderCategories,
-    "#quick":        renderQuickConfig,
-    "#stats":        renderStats,
-    "#jeopardy":     renderJeopardyConfig,
-    "#sudden-death": renderSuddenDeathConfig,
-    "#timed":        renderTimedConfig,
-    "#numbers":      renderNumbersConfig,
-    "#saved":        renderSaved,
-  };
-  (pages[hash] || renderHome)();
+  const root = document.getElementById("pageRoot");
+  if (root) root.focus({ preventScroll: true });
 }
 
-window.addEventListener("hashchange", router);
+let _suppressNextHashChange = false;
+
+window.addEventListener("hashchange", (e) => {
+  if (_suppressNextHashChange) { _suppressNextHashChange = false; return; }
+  if (sessionId !== null) {
+    if (!confirm("Leave this quiz? Your progress will be lost.")) {
+      _suppressNextHashChange = true;
+      const oldHash = e.oldURL.includes("#") ? "#" + e.oldURL.split("#")[1] : "#home";
+      window.location.hash = oldHash;
+      return;
+    }
+    sessionId = null;
+    clearAutoNext();
+    clearQuestionTimer();
+    clearSessionTimer();
+  }
+  router();
+});
 window.addEventListener("load", router);
+
+window.addEventListener("beforeunload", (e) => {
+  if (sessionId !== null) e.preventDefault();
+});
+
+document.body.addEventListener("click", (e) => {
+  const navTarget = e.target.closest("[data-nav]");
+  if (navTarget) { navigate(navTarget.dataset.nav); return; }
+  const removeTarget = e.target.closest("[data-remove]");
+  if (removeTarget) doRemoveBookmark(parseInt(removeTarget.dataset.remove));
+});
+
+document.body.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    const navTarget = e.target.closest("[data-nav]");
+    if (navTarget) { e.preventDefault(); navigate(navTarget.dataset.nav); }
+  }
+});
+
+// ── Card keyboard support ─────────────────────────────────────
+function applyCardKeyboardSupport() {
+  document.querySelectorAll(".mode-card, .category-card").forEach(card => {
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("role", "button");
+  });
+}
 
 // ── Header helpers ────────────────────────────────────────────
 function setBackBtn(show, targetHash) {
@@ -182,7 +239,7 @@ function renderHome() {
   document.getElementById("pageRoot").innerHTML = `
     <div class="home-sections">
 
-      <div class="mode-card" onclick="navigate('#daily')">
+      <div class="mode-card" data-nav="#daily">
         <div class="mode-card-name">Daily Challenge</div>
         <div class="mode-card-desc">10 questions · refreshes at midnight</div>
       </div>
@@ -190,15 +247,15 @@ function renderHome() {
       <div class="home-section">
         <div class="home-section-label">CHALLENGE MODES</div>
         <div class="home-section-grid">
-          <div class="mode-card" onclick="navigate('#sudden-death')">
+          <div class="mode-card" data-nav="#sudden-death">
             <div class="mode-card-name">Sudden Death</div>
             <div class="mode-card-desc">One wrong answer ends everything</div>
           </div>
-          <div class="mode-card" onclick="navigate('#timed')">
+          <div class="mode-card" data-nav="#timed">
             <div class="mode-card-name">Timed Challenge</div>
             <div class="mode-card-desc">Race the clock per question</div>
           </div>
-          <div class="mode-card" onclick="navigate('#jeopardy')">
+          <div class="mode-card" data-nav="#jeopardy">
             <div class="mode-card-name">Jeopardy</div>
             <div class="mode-card-desc">Real clues · type your answer</div>
           </div>
@@ -208,15 +265,15 @@ function renderHome() {
       <div class="home-section">
         <div class="home-section-label">EXPLORE</div>
         <div class="home-section-grid">
-          <div class="mode-card" onclick="navigate('#categories')">
+          <div class="mode-card" data-nav="#categories">
             <div class="mode-card-name">Categories</div>
             <div class="mode-card-desc">8 rooms · choose your topic</div>
           </div>
-          <div class="mode-card" onclick="navigate('#quick')">
+          <div class="mode-card" data-nav="#quick">
             <div class="mode-card-name">Quick Play</div>
-            <div class="mode-card-desc">10 questions · random · no setup</div>
+            <div class="mode-card-desc">Random questions · any topic · no setup</div>
           </div>
-          <div class="mode-card" onclick="navigate('#numbers')">
+          <div class="mode-card" data-nav="#numbers">
             <div class="mode-card-name">Number Facts</div>
             <div class="mode-card-desc">Fill in the blank · number trivia</div>
           </div>
@@ -226,11 +283,11 @@ function renderHome() {
       <div class="home-section">
         <div class="home-section-label">PERSONAL</div>
         <div class="home-section-grid">
-          <div class="mode-card" onclick="navigate('#stats')">
+          <div class="mode-card" data-nav="#stats">
             <div class="mode-card-name">Stats</div>
             <div class="mode-card-desc">Your record &amp; history</div>
           </div>
-          <div class="mode-card" onclick="navigate('#saved')">
+          <div class="mode-card" data-nav="#saved">
             <div class="mode-card-name">Saved Questions</div>
             <div class="mode-card-desc">${getBookmarks().length} bookmarked</div>
           </div>
@@ -239,6 +296,7 @@ function renderHome() {
 
     </div>
   `;
+  applyCardKeyboardSupport();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -260,7 +318,7 @@ function renderDaily() {
         <span class="daily-streak-count">STREAK&nbsp;&nbsp;${streak.count}</span>
         <div class="daily-done-score">${score} / ${total}</div>
         <div class="daily-done-msg">Completed. Come back tomorrow.</div>
-        <button class="btn-primary" onclick="navigate('#home')">Back to Home</button>
+        <button class="btn-primary" data-nav="#home">Back to Home</button>
       </div>
     `;
   } else {
@@ -302,13 +360,14 @@ function renderCategories() {
   document.getElementById("pageRoot").innerHTML = `
     <div class="categories-grid">
       ${CATEGORIES.map(cat => `
-        <div class="category-card" onclick="navigate('#category/${cat.id}')">
+        <div class="category-card" data-nav="#category/${cat.id}">
           <div class="category-card-name">${cat.name}</div>
           <div class="category-card-desc">${cat.desc}</div>
         </div>
       `).join("")}
     </div>
   `;
+  applyCardKeyboardSupport();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -380,13 +439,23 @@ async function startCategoryQuiz(cat) {
 // ═══════════════════════════════════════════════════════════════
 // PAGE: QUICK PLAY CONFIG
 // ═══════════════════════════════════════════════════════════════
+let selectedQuickType = "boolean";
+
 function renderQuickConfig() {
   setBackBtn(true, "#home");
   selectedAmount = 10;
+  selectedQuickType = "boolean";
   document.getElementById("pageRoot").innerHTML = `
     <div class="cat-config">
       <div class="cat-config-name">Quick Play</div>
-      <div class="cat-config-desc">Random questions · any topic · true or false</div>
+      <div class="cat-config-desc">Random questions · any topic · no setup</div>
+      <div class="config-section">
+        <label>Format</label>
+        <div class="tab-group" id="typeTabs">
+          <button class="tab-btn active" data-val="boolean">True / False</button>
+          <button class="tab-btn" data-val="multiple">Multiple Choice</button>
+        </div>
+      </div>
       <div class="config-section">
         <label>Questions</label>
         <div class="tab-group" id="amountTabs">
@@ -400,6 +469,12 @@ function renderQuickConfig() {
       <div id="quickError" class="error-msg" style="display:none;"></div>
     </div>
   `;
+  document.querySelectorAll("#typeTabs .tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#typeTabs .tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active"); selectedQuickType = btn.dataset.val;
+    });
+  });
   document.querySelectorAll("#amountTabs .tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll("#amountTabs .tab-btn").forEach(b => b.classList.remove("active"));
@@ -414,7 +489,7 @@ async function startQuickQuiz() {
   const errEl = document.getElementById("quickError");
   btn.disabled = true; btn.innerText = "Loading..."; errEl.style.display = "none";
   try {
-    const res = await fetch(`${API_BASE}/api/start?amount=${selectedAmount}&q_type=boolean`, { method: "POST" });
+    const res = await fetch(`${API_BASE}/api/start?amount=${selectedAmount}&q_type=${selectedQuickType}`, { method: "POST" });
     if (!res.ok) { const e = await res.json(); errEl.innerText = e.detail || "Failed."; errEl.style.display = "block"; return; }
     startQuiz(await res.json(), "quick", "General", "#quick");
   } catch {
@@ -625,7 +700,7 @@ function renderSaved() {
       <div class="saved-question">${escapeHtml(b.question)}</div>
       <div class="saved-answer">Answer: ${escapeHtml(b.answer)}</div>
       <div class="saved-meta"><span class="saved-category">${escapeHtml(b.category)}</span><span class="saved-date">${b.date}</span></div>
-      <button class="saved-remove" onclick="doRemoveBookmark(${i})">Remove</button>
+      <button class="saved-remove" data-remove="${i}">Remove</button>
     </div>
   `).join("");
   document.getElementById("pageRoot").innerHTML = `
@@ -652,7 +727,7 @@ function renderStats() {
     ? Math.round((stats.totalCorrect / stats.totalAnswered) * 100) : 0;
   const modeLabel = m => ({ daily: "Daily", quick: "Quick Play", "sudden-death": "Sudden Death",
     timed: "Timed", jeopardy: "Jeopardy", numbers: "Numbers" }[m] || m);
-  const recentRows = stats.games.slice(0, 7).map(g => `
+  const recentRows = stats.games.slice(0, 10).map(g => `
     <div class="stat-game-row">
       <span class="stat-game-mode">${modeLabel(g.mode) || g.category}</span>
       <span class="stat-game-score">${g.score}&nbsp;/&nbsp;${g.total}</span>
@@ -812,7 +887,9 @@ function updateProgressDots(currentNumber) {
       dot.classList.add("active");
     }
   });
-  document.getElementById("questionCounter").innerText = `Q ${currentNumber} / ${totalQuestions}`;
+  if (quizMode !== "timed") {
+    document.getElementById("questionCounter").innerText = `Q ${currentNumber} / ${totalQuestions}`;
+  }
 }
 
 function markCurrentDot(isCorrect) {
@@ -864,6 +941,7 @@ function startSessionTimer() {
 }
 
 function endTimedSession() {
+  sessionId = null;
   disableAnswerButtons();
   clearAutoNext();
   recordGame(quizMode, quizCategory, scoreTracker, sessionAttempted);
@@ -978,10 +1056,11 @@ async function submitAnswer(answer, clickedBtn) {
   const isTimeout = answer === "__timeout__";
 
   try {
-    const res = await fetch(
-      `${API_BASE}/api/answer?session_id=${encodeURIComponent(sessionId)}&answer=${encodeURIComponent(answer)}`,
-      { method: "POST" }
-    );
+    const res = await fetch(`${API_BASE}/api/answer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId, answer: isTimeout ? "" : answer, timeout: isTimeout }),
+    });
     const data = await res.json();
     if (!res.ok) { document.getElementById("feedback").innerText = data.detail || "Error."; return; }
     if (quizMode === "timed" && !sessionActive) return; // session ended while awaiting
@@ -1079,6 +1158,7 @@ async function submitAnswer(answer, clickedBtn) {
 
 // ── Sudden Death summary ──────────────────────────────────────
 function showSuddenDeathSummary(score, questionsPlayed) {
+  sessionId = null;
   document.getElementById("quizActive").style.display = "none";
   document.getElementById("progressArea").style.display = "none";
   const isNewBest = updateSdBest(score);
@@ -1095,6 +1175,7 @@ function showSuddenDeathSummary(score, questionsPlayed) {
 
 // ── Summary ───────────────────────────────────────────────────
 function showSummary(score, total) {
+  sessionId = null;
   document.getElementById("quizActive").style.display = "none";
   document.getElementById("progressArea").style.display = "none";
   const pct = Math.round((score / total) * 100);

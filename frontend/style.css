@@ -187,6 +187,7 @@ label {
 }
 
 .mode-card:hover { border-left-color: #c8a96e; background: #18150e; }
+.mode-card:focus-visible { outline: 1px solid #c8a96e; outline-offset: 2px; border-left-color: #c8a96e; }
 
 .mode-card-name {
   font-family: 'Syne', system-ui, sans-serif;
@@ -276,6 +277,7 @@ label {
 }
 
 .category-card:hover { border-left-color: #c8a96e; background: #18150e; }
+.category-card:focus-visible { outline: 1px solid #c8a96e; outline-offset: 2px; border-left-color: #c8a96e; }
 
 .category-card-name {
   font-family: 'Syne', system-ui, sans-serif;
