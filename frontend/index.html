@@ -3,43 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quizler App</title>
-    <link rel="stylesheet" href="style.css">
+  <title>Quizler</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+  <div class="container">
 
-  <h1>Quizler App</h1>
+    <header class="app-header">
+      <div class="header-left">
+        <button class="back-btn" id="backBtn" style="display:none;">← Back</button>
+      </div>
+      <div class="header-center">
+        <div class="header-rule"></div>
+        <h1>QUIZLER</h1>
+        <div class="header-rule"></div>
+      </div>
+      <div class="header-right">
+        <div id="streakDisplay"></div>
+      </div>
+    </header>
 
-  <div id="startScreen">
-    <label for="numQuestions">Number of Questions:</label>
-    <input type="number" id="numQuestions" min="1" max="50" value="10">
-    <br>
-    <label for="questionType">Question Type:</label>
-    <select id="questionType">
-      <option value="boolean">True/False</option>
-    </select>
-    <br>
-    <button id="startBtn">Start Quiz</button>
+    <main id="pageRoot"></main>
+
   </div>
-
-  <div id="quizScreen" style="display: none;">
-  <div class="progress-container">
-      <div class="progress-bar" id="progressBar"></div>
-  </div>
-
-  <div id="question">Loading quiz...</div>
-  <div id="feedback"></div>
-  <div id="score">Score: 0</div>
-
-  <div class="buttons">
-      <button id="trueBtn">True</button>
-      <button id="falseBtn">False</button>
-      <button id="restartBtn">Restart Quiz</button>
-  </div>
-  </div>
-
-    </div>
   <script src="app.js"></script>
 </body>
 </html>
